@@ -33,7 +33,7 @@ export interface NamedGraphUtilResponse {
     removeAliasesToNamedGraph: (req: AliasesNamedGraphProps) => Promise<number>
 }
 
-export const nameGraphUtil = ({
+export const namedGraphUtil = ({
     conn,
     dbName,
 }: NamedGraphUtilProps): NamedGraphUtilResponse => {

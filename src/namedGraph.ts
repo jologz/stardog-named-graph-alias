@@ -1,6 +1,6 @@
 import prompt from 'prompt'
 import { Connection } from 'stardog'
-import { nameGraphUtil } from './namedGraphUtil'
+import { namedGraphUtil } from './namedGraphUtil'
 import { commitChangesSchema, metadataSchema } from './promptSchema'
 
 export const namedGraph = async () => {
@@ -31,7 +31,7 @@ export const namedGraph = async () => {
         getTotalTriples,
         getTotalTriplesInTransaction,
         removeAliasesToNamedGraph,
-    } = nameGraphUtil({
+    } = namedGraphUtil({
         conn,
         dbName,
     })
