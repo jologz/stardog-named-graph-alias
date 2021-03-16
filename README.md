@@ -2,12 +2,12 @@
 
 ## Description
 
-This project will show you how to use:
+This project will show you how to:
 
 -   Add data from one named graph to another
 -   Add / remove named graph alias
--   `db.transaction.begin` and `db.transaction.commit` so you can see the changes first before committing any update to your database.
--   `query.execute`
+-   Use `db.transaction.begin` and `db.transaction.commit` so you can see the changes first before committing any update to your database.
+-   Use `query.execute`
 
 It uses [stardog.js](https://github.com/stardog-union/stardog.js) npm package.
 
