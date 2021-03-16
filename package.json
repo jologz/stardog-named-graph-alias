@@ -5,13 +5,17 @@
     "repository": {},
     "main": "build/app.js",
     "scripts": {
+        "build": "webpack --mode production",
         "start": "tsc && node build/app.js"
     },
     "keywords": [],
     "author": "",
     "license": "ISC",
     "devDependencies": {
-        "typescript": "4.2.3"
+        "ts-loader": "8.0.18",
+        "typescript": "4.2.3",
+        "webpack": "5.26.1",
+        "webpack-cli": "4.5.0"
     },
     "dependencies": {
         "prompt": "1.1.0",
