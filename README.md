@@ -18,9 +18,9 @@ I have attached [fibo_urn_GLEIF.ttl](./data/fibo_urn_GLEIF.ttl) so you can uploa
 Example RDF Upload:
 ![image](https://user-images.githubusercontent.com/3269153/111331934-befd3f80-8647-11eb-847d-eecf9c88b5d4.png)
 
-To follow along, make sure you name your graph as `URN:GLEIF`
+To follow along, make sure you name your graph as `urn:GLEIF`
 
-After uploading, add an alias to `<URN:GLEIF>` using the Stardog Studio's workspace or CLI
+After uploading, add an alias to `<urn:GLEIF>` using the Stardog Studio's workspace or CLI
 ```
 # Add to alias
 INSERT DATA {
