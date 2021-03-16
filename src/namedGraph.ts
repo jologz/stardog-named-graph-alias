@@ -1,19 +1,11 @@
 import prompt from 'prompt'
 import { Connection } from 'stardog'
 import { nameGraphUtil } from './namedGraphUtil'
-import { commitChangesSchema } from './promptSchema'
+import { commitChangesSchema, metadataSchema } from './promptSchema'
 
 export const namedGraph = async () => {
     prompt.start()
 
-    // const {
-    //     username,
-    //     password,
-    //     endpoint,
-    //     dbName,
-    //     fromNamedGraph,
-    //     toNamedGraph,
-    // } = await prompt.get(promptSchema)
     const {
         username,
         password,
@@ -21,14 +13,7 @@ export const namedGraph = async () => {
         dbName,
         fromNamedGraph,
         toNamedGraph,
-    } = {
-        username: 'admin',
-        password: 'admin',
-        endpoint: 'http://localhost:5820',
-        dbName: 'fibo',
-        fromNamedGraph: '<urn:GLEIF>',
-        toNamedGraph: '<urn:ABCD>',
-    }
+    } = await prompt.get(metadataSchema)
 
     const conn = new Connection({
         username,

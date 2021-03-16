@@ -20,4 +20,4 @@ Example RDF Upload:
 
 To follow along, make sure you name your graph as `URN:GLEIF`
 
-Run the code by doing `npm run start` and it will transpile the typescript files and build the project. It will then run `node build/app.js` to run the code. It will prompt you on some metadata the project needs. You can press `Enter` to use the default.
+Run the code by doing `npm run start`. It will transpile the typescript files and build the project. It will then run `node build/app.js` to run the code. It will prompt you on some metadata the project needs. You can press `Enter` to use the default.
