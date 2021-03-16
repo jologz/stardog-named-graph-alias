@@ -20,6 +20,16 @@ Example RDF Upload:
 
 To follow along, make sure you name your graph as `URN:GLEIF`
 
+After uploading, add an alias to `<URN:GLEIF>` using the Stardog Studio's workspace or CLI
+```
+# Add to alias
+INSERT DATA {
+    GRAPH <tag:stardog:api:graph:aliases> {
+    :alphabet <tag:stardog:api:graph:alias> <urn:GLEIF>
+    }
+}
+```
+
 Run the code by doing `npm run start`. It will transpile the typescript files and build the project. It will then run `node build/app.js` to run the code. It will prompt you on some metadata the project needs. You can press `Enter` to use the default.
 
 ## Sample Node
