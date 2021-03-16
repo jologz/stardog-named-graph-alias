@@ -1,0 +1,22 @@
+{
+    "name": "named-graph-rename-ts",
+    "version": "1.0.0",
+    "description": "Named graph rename and using alias",
+    "repository": {},
+    "main": "build/app.js",
+    "scripts": {
+        "start": "tsc && node build/app.js"
+    },
+    "keywords": [],
+    "author": "",
+    "license": "ISC",
+    "devDependencies": {
+        "typescript": "4.2.3"
+    },
+    "dependencies": {
+        "prompt": "1.1.0",
+        "stardog": "3.0.0",
+        "stardog-language-utils": "1.12.0",
+        "uuid": "8.3.2"
+    }
+}
