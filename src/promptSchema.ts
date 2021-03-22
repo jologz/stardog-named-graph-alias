@@ -14,15 +14,15 @@ export const metadataSchema = {
         },
         dbName: {
             message: 'Database name to use.',
-            default: 'fibo',
+            default: 'decomp',
         },
         fromNamedGraph: {
             message: 'Original named graph',
-            default: '<urn:GLEIF>',
+            default: '<https://nasa.gov/ontology>',
         },
         toNamedGraph: {
             message: 'New named graph',
-            default: '<urn:ABCD>',
+            default: '<https://nasa.gov/newNg>',
         },
     },
 }

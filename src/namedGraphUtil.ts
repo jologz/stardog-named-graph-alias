@@ -1,4 +1,4 @@
-import { Connection, db, query } from 'stardog'
+import { Connection, db, query, user } from 'stardog'
 import { getLocalName } from './stardog/stardogUtils'
 
 export interface FromToNamedGraphProps {
@@ -24,12 +24,16 @@ export interface NamedGraphUtilProps {
 export interface NamedGraphUtilResponse {
     addDataToNamedGraph: (req: FromToNamedGraphProps) => Promise<boolean>
     addAliasesToNamedGraph: (req: AliasesNamedGraphProps) => Promise<number>
+    assignRolePermission: (roleName: string) => Promise<void>
     beginTransaction: () => Promise<string>
     commitTransaction: () => Promise<boolean>
+    createDbReaderRole: () => Promise<boolean>
     dropNamedGraph: (namedGraph: string) => Promise<boolean>
     getAliases: (namedGraph: string) => Promise<string[] | null>
+    getRoleList: () => Promise<string[] | null>
     getTotalTriples: (namedGraph: string) => Promise<number | null>
     getTotalTriplesInTransaction: (namedGraph: string) => Promise<number | null>
+    getUserList: () => Promise<string[] | null>
     removeAliasesToNamedGraph: (req: AliasesNamedGraphProps) => Promise<number>
 }
 
@@ -105,6 +109,20 @@ export const namedGraphUtil = ({
         return successfulCount
     }
 
+    const assignRolePermission = async (roleName: string) => {
+        await user.role.assignPermission(conn, roleName, {
+            action: 'READ',
+            resourceType: 'db',
+            resources: [dbName],
+        })
+
+        await user.role.assignPermission(conn, roleName, {
+            action: 'READ',
+            resourceType: 'named-graph',
+            resources: [`${dbName}\\tag:stardog:api:context:default`],
+        })
+    }
+
     const beginTransaction = async () => {
         try {
             const transResponse = await db.transaction.begin(conn, dbName)
@@ -129,6 +147,14 @@ export const namedGraphUtil = ({
             console.error(e)
         }
         return false
+    }
+
+    const createDbReaderRole = async () => {
+        const response = await user.role.create(conn, {
+            name: `db_${dbName}_reader`,
+        })
+
+        return response.ok
     }
 
     const dropNamedGraph = async (namedGraph: string) => {
@@ -172,6 +198,12 @@ export const namedGraphUtil = ({
             console.error(e)
             return null
         }
+    }
+
+    const getRoleList = async () => {
+        const response = await user.role.list(conn)
+        if (!response.ok) return null
+        return response.body.roles as string[]
     }
 
     const getTotalTriples = async (namedGraph: string) => {
@@ -218,6 +250,17 @@ export const namedGraphUtil = ({
             console.error(e)
         }
 
+        return null
+    }
+
+    const getUserList = async () => {
+        try {
+            const response = await user.list(conn)
+            if (!response.ok) return null
+            return response.body.users as string[]
+        } catch (e) {
+            console.error(e)
+        }
         return null
     }
 
@@ -269,12 +312,16 @@ export const namedGraphUtil = ({
     return {
         addDataToNamedGraph,
         addAliasesToNamedGraph,
+        assignRolePermission,
         beginTransaction,
         commitTransaction,
+        createDbReaderRole,
         dropNamedGraph,
         getAliases,
+        getRoleList,
         getTotalTriples,
         getTotalTriplesInTransaction,
+        getUserList,
         removeAliasesToNamedGraph,
     }
 }

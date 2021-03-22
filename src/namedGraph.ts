@@ -1,11 +1,19 @@
 import prompt from 'prompt'
-import { Connection } from 'stardog'
+import { Connection, user } from 'stardog'
 import { namedGraphUtil } from './namedGraphUtil'
-import { commitChangesSchema, metadataSchema } from './promptSchema'
+import { commitChangesSchema } from './promptSchema'
 
 export const namedGraph = async () => {
     prompt.start()
 
+    // const {
+    //     username,
+    //     password,
+    //     endpoint,
+    //     dbName,
+    //     fromNamedGraph,
+    //     toNamedGraph,
+    // } = await prompt.get(metadataSchema)
     const {
         username,
         password,
@@ -13,7 +21,14 @@ export const namedGraph = async () => {
         dbName,
         fromNamedGraph,
         toNamedGraph,
-    } = await prompt.get(metadataSchema)
+    } = {
+        username: 'admin',
+        password: 'admin',
+        endpoint: 'http://localhost:5820',
+        dbName: 'decomp',
+        fromNamedGraph: '<https://nasa.gov/ontology>',
+        toNamedGraph: '<https://nasa.gov/newNg>',
+    }
 
     const conn = new Connection({
         username,
@@ -24,12 +39,16 @@ export const namedGraph = async () => {
     const {
         addDataToNamedGraph,
         addAliasesToNamedGraph,
+        assignRolePermission,
         beginTransaction,
         commitTransaction,
+        createDbReaderRole,
         dropNamedGraph,
         getAliases,
+        getRoleList,
         getTotalTriples,
         getTotalTriplesInTransaction,
+        getUserList,
         removeAliasesToNamedGraph,
     } = namedGraphUtil({
         conn,
@@ -41,6 +60,29 @@ export const namedGraph = async () => {
     if (!transactionId) {
         console.error('Error getting transaction Id.')
         return
+    }
+
+    const dbNameReaderRole = `db_${dbName}_reader`
+    console.log(`Creating ${dbNameReaderRole} role...`)
+    await createDbReaderRole()
+    console.log('Done!')
+
+    console.log(`\nAdding permissions to ${dbNameReaderRole}...`)
+    await assignRolePermission(dbNameReaderRole)
+    console.log('Done!')
+
+    console.log('\nGetting user lists...')
+    const users = await getUserList()
+    console.log(users.join('\n'))
+
+    const nonAdmins = users.filter(
+        (user) => user !== 'admin' && user !== 'anonymous'
+    )
+
+    console.log(`\nAdding users to ${dbNameReaderRole}`)
+    for (const nonAdmin of nonAdmins) {
+        await user.setRoles(conn, nonAdmin, [dbNameReaderRole])
+        console.log(`${nonAdmin} has been added to ${dbNameReaderRole}`)
     }
 
     const fromNamedGraphTotalTriples = await getTotalTriples(fromNamedGraph)
