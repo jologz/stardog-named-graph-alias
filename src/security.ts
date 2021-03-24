@@ -1,19 +1,36 @@
 import { query, user } from 'stardog'
 import { DbNameConnProps, QueryResponse } from './stardog/stardogUtils'
 
-export interface SecurityResponse {
-    run: () => Promise<boolean>
+export interface AddNewReadRoleAndRemoveOldReadRoleFromUsersProps {
+    /** old named graph */
+    fromNamedGraph: string
+    /** new role name */
+    newRole: string
 }
 
-interface RoleNameResourceProps {
+export interface RoleNameResourceProps {
     roleName: string
     resourceName: string
     resourceType: user.ResourceType
 }
 
-const nasaDomain = 'https://nasa.gov/'
+export interface SecurityResponse {
+    addNewReadRoleAndRemoveOldReadRoleFromUsers: (
+        req: AddNewReadRoleAndRemoveOldReadRoleFromUsersProps
+    ) => Promise<boolean>
+    createReadRoleForNamedGraph: (namedGraph: string) => Promise<string | null>
+    run: () => Promise<boolean>
+}
 
-const Security = ({ dbName, conn }: DbNameConnProps) => {
+export interface SecurityRequest extends DbNameConnProps {
+    namedGraphDomain: string
+}
+
+const Security = ({
+    dbName,
+    conn,
+    namedGraphDomain,
+}: SecurityRequest): SecurityResponse => {
     const dbReadRoleName = `db_${dbName}_read`
     const dbUpdateRoleName = `db_${dbName}_update`
     const ngDefaultReadRoleName = `ng_${dbName}_default_read`
@@ -65,12 +82,93 @@ const Security = ({ dbName, conn }: DbNameConnProps) => {
     const addNgIasAsmtGraphRoleUpdate = async () => {
         console.log(`\nAdding iasAsmtGraph update role for concourse service.`)
         const ngUpdateSuccess = await addUpdateRoleAndPermission({
-            resourceName: `${dbName}\\${nasaDomain}iasAsmtGraph`,
+            resourceName: `${dbName}\\${namedGraphDomain}iasAsmtGraph`,
             resourceType: 'named-graph',
             roleName: ngIasAsmtGraphUpdateRoleName,
         })
 
         return ngUpdateSuccess
+    }
+
+    const addNewReadRoleAndRemoveOldReadRoleFromUsers = async ({
+        fromNamedGraph,
+        newRole,
+    }: AddNewReadRoleAndRemoveOldReadRoleFromUsersProps) => {
+        const oldRoleName = `ng_${dbName}_${getRoleName(fromNamedGraph)}_read`
+
+        try {
+            const usersResponse = await user.list(conn)
+            if (!usersResponse.ok) {
+                console.error('Error getting users.')
+                return false
+            }
+
+            const users = usersResponse.body.users as string[]
+            const nonAdminAnonymousUsers = users.filter(
+                (user) => user !== 'admin' && user !== 'anonymous'
+            )
+            try {
+                for (const nonAdminUser of nonAdminAnonymousUsers) {
+                    // setting roles will remove previoulsy added roles.
+                    // get the current roles and add new roles
+
+                    const nonAdminUserRolesResponse = await user.listRoles(
+                        conn,
+                        nonAdminUser
+                    )
+
+                    if (!nonAdminUserRolesResponse.ok) {
+                        throw new Error(`Error getting ${nonAdminUser} roles.`)
+                    }
+
+                    const currentRoles = nonAdminUserRolesResponse.body
+                        .roles as string[]
+
+                    const removedOldRoles = currentRoles.filter(
+                        (currentRole) => currentRole !== oldRoleName
+                    )
+
+                    const updatedRoles = [...removedOldRoles, newRole]
+
+                    const addUserReadRoleResponse = await user.setRoles(
+                        conn,
+                        nonAdminUser,
+                        updatedRoles
+                    )
+
+                    if (!addUserReadRoleResponse.ok) {
+                        console.log(
+                            `\n${nonAdminUser} failed adding read roles.`
+                        )
+                    } else {
+                        console.log(
+                            `\n${nonAdminUser} roles:\n${updatedRoles.join(
+                                '\n'
+                            )}`
+                        )
+                    }
+                }
+
+                const removeOldRoleResponse = await user.role.remove(
+                    conn,
+                    oldRoleName
+                )
+                if (!removeOldRoleResponse.ok) {
+                    console.error(
+                        `Error removing ${oldRoleName}. Please delete manually`
+                    )
+                } else {
+                    console.log(`${oldRoleName} role has been removed.`)
+                }
+            } catch (e) {
+                console.error(e)
+                return false
+            }
+        } catch (e) {
+            console.error(e)
+            return false
+        }
+        return true
     }
 
     const addReadRoleAndPermission = async ({
@@ -177,6 +275,19 @@ const Security = ({ dbName, conn }: DbNameConnProps) => {
         return true
     }
 
+    const createReadRoleForNamedGraph = async (
+        namedGraph: string
+    ): Promise<string | null> => {
+        const roleName = `ng_${dbName}_${getRoleName(namedGraph)}_read`
+        const newReadRoleSuccess = await addReadRoleAndPermission({
+            resourceName: `${dbName}\\${namedGraph.replace(/[<>]+/g, '')}`,
+            resourceType: 'named-graph',
+            roleName,
+        })
+
+        return newReadRoleSuccess ? roleName : null
+    }
+
     const getAllNamedGraphsAndCreateRoles = async () => {
         try {
             console.log('\nGetting all named graphs to create READ roles.')
@@ -202,7 +313,7 @@ const Security = ({ dbName, conn }: DbNameConnProps) => {
             // get only nasa named graphs
             const namedGraphs = graphs
                 .map(({ graph }) => graph.value)
-                .filter((graph) => graph.startsWith(nasaDomain))
+                .filter((graph) => graph.startsWith(namedGraphDomain))
 
             console.log('\nNamed Graphs:')
             console.log(namedGraphs.join('\n'))
@@ -210,27 +321,16 @@ const Security = ({ dbName, conn }: DbNameConnProps) => {
             console.log('\nCreating READ roles and permissions.')
             try {
                 for (const graph of namedGraphs) {
-                    const graphRoleName = graph
-                        .substr(nasaDomain.length)
-                        .replace(/\//g, '_')
-                    const roleName = `ng_${dbName}_${graphRoleName}_read`
-
-                    const resourceName = `${dbName}\\${graph}`
-                    const resourceType = 'named-graph'
-
-                    const readResponseSuccess = await addReadRoleAndPermission({
-                        roleName,
-                        resourceName,
-                        resourceType,
-                    })
-
-                    if (!readResponseSuccess) {
+                    const successRoleName = await createReadRoleForNamedGraph(
+                        graph
+                    )
+                    if (!successRoleName) {
                         throw new Error(
                             `Error adding read role for graph <${graph}>`
                         )
                     }
 
-                    readRoles.push(roleName)
+                    readRoles.push(successRoleName)
                 }
             } catch (e) {
                 console.error(e)
@@ -241,6 +341,13 @@ const Security = ({ dbName, conn }: DbNameConnProps) => {
             return false
         }
         return true
+    }
+
+    const getRoleName = (fullGraphName: string) => {
+        return fullGraphName
+            .replace(/[<>]+/g, '')
+            .substr(namedGraphDomain.length)
+            .replace(/\//g, '_')
     }
 
     const getUsersAndAddRoles = async () => {
@@ -372,6 +479,8 @@ const Security = ({ dbName, conn }: DbNameConnProps) => {
     }
 
     return {
+        addNewReadRoleAndRemoveOldReadRoleFromUsers,
+        createReadRoleForNamedGraph,
         run,
     }
 }

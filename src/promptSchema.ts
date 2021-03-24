@@ -16,17 +16,21 @@ export const metadataSchema = {
             message: 'Database name to use.',
             default: 'decomp',
         },
+        namedGraphDomain: {
+            message: 'Named graph domain.  Please include trailing /',
+            default: 'https://nasa.gov/',
+        },
         fromNamedGraph: {
             message: 'Original named graph',
-            default: '<https://nasa.gov/ontology>',
+            default: '<https://nasa.gov/matLinks>',
         },
         toNamedGraph: {
             message: 'New named graph',
-            default: '<https://nasa.gov/newNg>',
+            default: '<https://nasa.gov/new/matLinks>',
         },
         aliasToUse: {
             message: 'Alias to point the toNamedGraph',
-            required: true,
+            default: ':alias-matLinks',
         },
     },
 }

@@ -2,6 +2,7 @@ import prompt from 'prompt'
 import { Connection } from 'stardog'
 import DbSettings from './dbSettings'
 import { namedGraphUtil } from './namedGraphUtil'
+import { metadataSchema } from './promptSchema'
 import Security from './security'
 
 /**
@@ -43,27 +44,21 @@ import Security from './security'
  *      - This will treat the DB as everything in Named Graph.  Read roles per NG is needed.
  *      - Any new NG must have a read role or else won't be read.
  *
- * C. FROM OLD NG TO NEW NG
+ * C. FROM OLD NG TO NEW NG (Compass should populate new NG)
  *  1. Gets total amount of triples for both fomNamedGraph (old NG) to toNamedGraph (new NG)
  *  2. Copying triples from fromNamedGraph to toNamedGraph.
  *      - Since the toNamedGraph is a new NG without read permissions yet and the DB has
  *      NG Security turned ON, any triples in toNamedGraph won't be read by any users even
  *      if we add the current alias to the toNamedGraph.
+ *      - This is just a simulation.  Compass will need to populate new NG.
  *  3. Adds aliasToUse to toNamedGraph
  *  4. Creates read role and permission for the toNamedGraph.
  *  5. Removes fromNamedGraph read role to each user while consecutively adding toNamedGraph read role.
  */
+
 export const namedGraph = async () => {
     prompt.start()
 
-    // const {
-    //     username,
-    //     password,
-    //     endpoint,
-    //     dbName,
-    //     fromNamedGraph,
-    //     toNamedGraph,
-    // } = await prompt.get(metadataSchema)
     const {
         username,
         password,
@@ -71,16 +66,28 @@ export const namedGraph = async () => {
         dbName,
         fromNamedGraph,
         toNamedGraph,
+        namedGraphDomain,
         aliasToUse,
-    } = {
-        username: 'admin',
-        password: 'admin',
-        endpoint: 'http://localhost:5820',
-        dbName: 'decomp',
-        fromNamedGraph: '<https://nasa.gov/cradle>',
-        toNamedGraph: '<https://nasa.gov/test/cradle>',
-        aliasToUse: ':alias-cradle',
-    }
+    } = await prompt.get(metadataSchema)
+    // const {
+    //     username,
+    //     password,
+    //     endpoint,
+    //     dbName,
+    //     fromNamedGraph,
+    //     toNamedGraph,
+    //     namedGraphDomain,
+    //     aliasToUse,
+    // } = {
+    //     username: 'admin',
+    //     password: 'admin',
+    //     endpoint: 'http://localhost:5820',
+    //     dbName: 'decomp',
+    //     fromNamedGraph: '<https://nasa.gov/matLinks>',
+    //     toNamedGraph: '<https://nasa.gov/test/matLinks>',
+    //     namedGraphDomain: 'https://nasa.gov/',
+    //     aliasToUse: ':alias-matLinks',
+    // }
 
     const conn = new Connection({
         username,
@@ -91,6 +98,7 @@ export const namedGraph = async () => {
     const security = Security({
         conn,
         dbName,
+        namedGraphDomain,
     })
 
     // Runs security related commands.
@@ -158,9 +166,27 @@ export const namedGraph = async () => {
     }
     console.log(`${toNamedGraph} is now using ${aliasToUse}`)
 
-    console.log(`Adding read roles to ${fromNamedGraph}`)
-    console.log(`Removing read roles from ${fromNamedGraph}`)
+    console.log(`Creating read role for ${toNamedGraph}`)
+    const newRole = await security.createReadRoleForNamedGraph(toNamedGraph)
+    if (!newRole) {
+        console.log(`Error creating read role for ${toNamedGraph}`)
+        return
+    }
+    console.log(`${newRole} has been created.`)
+
     console.log(`Removing old read roles and adding new read roles to users...`)
+    const successUpdatingUsers = await security.addNewReadRoleAndRemoveOldReadRoleFromUsers(
+        {
+            fromNamedGraph,
+            newRole,
+        }
+    )
+
+    if (successUpdatingUsers) {
+        console.log(
+            `\nSuccessfully updated!\nYou can now manually drop ${fromNamedGraph}`
+        )
+    }
 
     return
 }
