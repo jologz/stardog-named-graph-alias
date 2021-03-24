@@ -1,3 +1,5 @@
+import { Connection } from 'stardog'
+
 /**
  * Returns the local name of a string if exists, or its value.
  * The local name is defined as the split after the first '#',
@@ -12,4 +14,14 @@ export const getLocalName = (text: string) => {
     // Group 3: split after the last occurrence of the ':' character
     const match = text.match(/[^#\n]*#(.*)|.*\/(.*)|.*:(.*)/)
     return match ? match[1] || match[2] || match[3] || text : text
+}
+
+export interface QueryResponse {
+    type: string
+    value: string
+}
+
+export interface DbNameConnProps {
+    dbName: string
+    conn: Connection
 }
