@@ -69,25 +69,6 @@ export const namedGraph = async () => {
         namedGraphDomain,
         aliasToUse,
     } = await prompt.get(metadataSchema)
-    // const {
-    //     username,
-    //     password,
-    //     endpoint,
-    //     dbName,
-    //     fromNamedGraph,
-    //     toNamedGraph,
-    //     namedGraphDomain,
-    //     aliasToUse,
-    // } = {
-    //     username: 'admin',
-    //     password: 'admin',
-    //     endpoint: 'http://localhost:5820',
-    //     dbName: 'decomp',
-    //     fromNamedGraph: '<https://nasa.gov/matLinks>',
-    //     toNamedGraph: '<https://nasa.gov/test/matLinks>',
-    //     namedGraphDomain: 'https://nasa.gov/',
-    //     aliasToUse: ':alias-matLinks',
-    // }
 
     const conn = new Connection({
         username,
