@@ -155,10 +155,10 @@ const Security = ({
                 )
                 if (!removeOldRoleResponse.ok) {
                     console.error(
-                        `Error removing ${oldRoleName}. Please delete manually`
+                        `\nError removing ${oldRoleName}. Please delete manually`
                     )
                 } else {
-                    console.log(`${oldRoleName} role has been removed.`)
+                    console.log(`\n${oldRoleName} role has been removed.`)
                 }
             } catch (e) {
                 console.error(e)
