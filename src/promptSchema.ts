@@ -24,6 +24,10 @@ export const metadataSchema = {
             message: 'New named graph',
             default: '<https://nasa.gov/newNg>',
         },
+        aliasToUse: {
+            message: 'Alias to point the toNamedGraph',
+            required: true,
+        },
     },
 }
 

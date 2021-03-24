@@ -353,9 +353,6 @@ const Security = ({ dbName, conn }: DbNameConnProps) => {
 
     const run = async () => {
         console.log('Adding roles and permissions:')
-        console.log(
-            `This will automatically reflect changes to the ${dbName} db.`
-        )
         const addDbRolesAndPermissionsSuccess = await addDbRolesAndPermissions()
         if (!addDbRolesAndPermissionsSuccess) return false
 

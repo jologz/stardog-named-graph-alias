@@ -18,14 +18,22 @@ export interface AliasesNamedGraphProps {
 
 export interface NamedGraphUtilResponse {
     addDataToNamedGraph: (req: FromToNamedGraphProps) => Promise<boolean>
-    addAliasesToNamedGraph: (req: AliasesNamedGraphProps) => Promise<number>
+    addDataToNamedGraphInTransaction: (
+        req: FromToNamedGraphProps
+    ) => Promise<boolean>
+    addAliasesToNamedGraphInTransaction: (
+        req: AliasesNamedGraphProps
+    ) => Promise<number>
+    addAliasToNamedGraph: (req: AliasNamedGraphProps) => Promise<boolean>
     beginTransaction: () => Promise<string>
     commitTransaction: () => Promise<boolean>
-    dropNamedGraph: (namedGraph: string) => Promise<boolean>
+    dropNamedGraphInTransaction: (namedGraph: string) => Promise<boolean>
     getAliases: (namedGraph: string) => Promise<string[] | null>
     getTotalTriples: (namedGraph: string) => Promise<number | null>
     getTotalTriplesInTransaction: (namedGraph: string) => Promise<number | null>
-    removeAliasesToNamedGraph: (req: AliasesNamedGraphProps) => Promise<number>
+    removeAliasesToNamedGraphInTransaction: (
+        req: AliasesNamedGraphProps
+    ) => Promise<number>
 }
 
 export const namedGraphUtil = ({
@@ -35,6 +43,26 @@ export const namedGraphUtil = ({
     let transactionId: string = null
 
     const addDataToNamedGraph = async ({
+        fromNamedGraph,
+        toNamedGraph,
+    }: FromToNamedGraphProps) => {
+        const addDataQuery = `
+            ADD ${fromNamedGraph} TO ${toNamedGraph}
+        `
+        try {
+            const addDataResponse = await query.execute(
+                conn,
+                dbName,
+                addDataQuery
+            )
+            return addDataResponse.ok
+        } catch (e) {
+            console.log(e)
+        }
+        return false
+    }
+
+    const addDataToNamedGraphInTransaction = async ({
         fromNamedGraph,
         toNamedGraph,
     }: FromToNamedGraphProps) => {
@@ -67,6 +95,31 @@ export const namedGraphUtil = ({
             }
         `
         try {
+            const aliasResponse = await query.execute(
+                conn,
+                dbName,
+                addAliasQuery
+            )
+
+            return aliasResponse.ok
+        } catch (e) {
+            console.error(e)
+        }
+        return false
+    }
+
+    const addAliasToNamedGraphInTransaction = async ({
+        aliasName,
+        namedGraph,
+    }: AliasNamedGraphProps) => {
+        const addAliasQuery = `
+            INSERT DATA {
+                GRAPH <tag:stardog:api:graph:aliases> {
+                ${aliasName} <tag:stardog:api:graph:alias> ${namedGraph}
+                }
+            }
+        `
+        try {
             const aliasResponse = await query.executeInTransaction(
                 conn,
                 dbName,
@@ -81,13 +134,13 @@ export const namedGraphUtil = ({
         return false
     }
 
-    const addAliasesToNamedGraph = async ({
+    const addAliasesToNamedGraphInTransaction = async ({
         aliases,
         namedGraph,
     }: AliasesNamedGraphProps) => {
         let successfulCount = 0
         for (const aliasName of aliases) {
-            const addAliasResponse = await addAliasToNamedGraph({
+            const addAliasResponse = await addAliasToNamedGraphInTransaction({
                 aliasName,
                 namedGraph,
             })
@@ -126,7 +179,7 @@ export const namedGraphUtil = ({
         return false
     }
 
-    const dropNamedGraph = async (namedGraph: string) => {
+    const dropNamedGraphInTransaction = async (namedGraph: string) => {
         const dropNamedGraphQuery = `
             DROP GRAPH ${namedGraph}
         `
@@ -216,7 +269,7 @@ export const namedGraphUtil = ({
         return null
     }
 
-    const removeAliasToNamedGraph = async ({
+    const removeAliasToNamedGraphInTransaction = async ({
         aliasName,
         namedGraph,
     }: AliasNamedGraphProps) => {
@@ -242,16 +295,18 @@ export const namedGraphUtil = ({
         return false
     }
 
-    const removeAliasesToNamedGraph = async ({
+    const removeAliasesToNamedGraphInTransaction = async ({
         aliases,
         namedGraph,
     }: AliasesNamedGraphProps) => {
         let successfulCount = 0
         for (const aliasName of aliases) {
-            const removeAliasResponse = await removeAliasToNamedGraph({
-                aliasName,
-                namedGraph,
-            })
+            const removeAliasResponse = await removeAliasToNamedGraphInTransaction(
+                {
+                    aliasName,
+                    namedGraph,
+                }
+            )
             if (!removeAliasResponse) {
                 return
             }
@@ -263,13 +318,15 @@ export const namedGraphUtil = ({
 
     return {
         addDataToNamedGraph,
-        addAliasesToNamedGraph,
+        addDataToNamedGraphInTransaction,
+        addAliasToNamedGraph,
+        addAliasesToNamedGraphInTransaction,
         beginTransaction,
         commitTransaction,
-        dropNamedGraph,
+        dropNamedGraphInTransaction,
         getAliases,
         getTotalTriples,
         getTotalTriplesInTransaction,
-        removeAliasesToNamedGraph,
+        removeAliasesToNamedGraphInTransaction,
     }
 }
