@@ -90,7 +90,7 @@ export const namedGraphUtil = ({
         const addAliasQuery = `
             INSERT DATA {
                 GRAPH <tag:stardog:api:graph:aliases> {
-                ${aliasName} <tag:stardog:api:graph:alias> ${namedGraph}
+                ${aliasName} <tag:stardog:api:graph:alias> <${namedGraph}>
                 }
             }
         `
