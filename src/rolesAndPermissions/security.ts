@@ -1,5 +1,5 @@
 import { query, user } from 'stardog'
-import { DbNameConnProps, QueryResponse } from './stardog/stardogUtils'
+import { DbNameConnProps, QueryResponse } from '../stardog/stardogUtils'
 
 export interface AddNewReadRoleAndRemoveOldReadRoleFromUsersProps {
     /** old named graph */
@@ -23,15 +23,9 @@ export interface SecurityResponse {
     run: () => Promise<boolean>
 }
 
-export interface SecurityRequest extends DbNameConnProps {
-    namedGraphDomain: string
-}
+const namedGraphDomain = 'https://nasa.gov'
 
-const Security = ({
-    dbName,
-    conn,
-    namedGraphDomain,
-}: SecurityRequest): SecurityResponse => {
+const Security = ({ dbName, conn }: DbNameConnProps): SecurityResponse => {
     const dbReadRoleName = `db_read`
     const dbWriteRoleName = `db_write`
     const ngDefaultReadRoleName = `ng_default_read`
@@ -41,13 +35,13 @@ const Security = ({
     // ngGroupRead are the passive named graphs bundled together
     const ngGroupReadRoleName = 'ng_group_read'
     const groupedNamedGraphs = [
-        `${namedGraphDomain}ontology`,
-        `${namedGraphDomain}mas`,
-        `${namedGraphDomain}cradle`,
-        `${namedGraphDomain}matLinks`,
-        `${namedGraphDomain}iasAsmtGraph`,
-        `${namedGraphDomain}iasGraph`,
-        `${namedGraphDomain}iasTimeline`,
+        `${namedGraphDomain}/ontology`,
+        `${namedGraphDomain}/mas`,
+        `${namedGraphDomain}/cradle`,
+        `${namedGraphDomain}/matLinks`,
+        `${namedGraphDomain}/iasAsmtGraph`,
+        `${namedGraphDomain}/iasGraph`,
+        `${namedGraphDomain}/iasTimeline`,
     ]
 
     const readRoles = [
@@ -136,7 +130,7 @@ const Security = ({
         console.log(`\nAdding iasAsmtGraph update role for concourse service.`)
         const ngUpdateSuccess = await addRoleAndPermission({
             action: 'WRITE',
-            resourceName: `${dbName}\\${namedGraphDomain}iasAsmtGraph`,
+            resourceName: `${dbName}\\${namedGraphDomain}/iasAsmtGraph`,
             resourceType: 'named-graph',
             roleName: ngIasAsmtGraphWriteRoleName,
         })
@@ -367,7 +361,9 @@ const Security = ({
     }
 
     const getRoleName = (fullGraphName: string) => {
-        return fullGraphName.substr(namedGraphDomain.length).replace(/\//g, '_')
+        return fullGraphName
+            .substr(namedGraphDomain.length + 1)
+            .replace(/\//g, '_')
     }
 
     const getUsersAndAddRoles = async () => {

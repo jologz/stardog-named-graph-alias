@@ -1,8 +1,7 @@
 import { Connection } from 'stardog'
-import DbSettings from './dbSettings'
 import { namedGraphUtil } from './namedGraphUtil'
 import { processEnv } from './processEnv'
-import Security from './security'
+import Security from './rolesAndPermissions/security'
 
 export const namedGraph = async () => {
     const {
@@ -14,35 +13,22 @@ export const namedGraph = async () => {
         NG_OLD: oldNamedGraph,
         NG_NEW: newNamedGraph,
     } = processEnv()
+
+    console.log('DATABASE_URL: ', endpoint)
+    console.log('DATABASE_USERNAME: ', username)
+    console.log('DATABASE_PASSWORD: ', password)
+    console.log('NG_DBNAME: ', dbName)
+    console.log('NG_ALIAS: ', aliasName)
+    console.log('NG_OLD: ', oldNamedGraph)
+    console.log('NG_NEW: ', newNamedGraph)
+
     const conn = new Connection({
         username,
         password,
         endpoint,
     })
 
-    const namedGraphDomain = 'https://nasa.gov/'
-
-    const security = Security({
-        conn,
-        dbName,
-        namedGraphDomain,
-    })
-
-    // Runs security related commands.
-    const securitySuccess = await security.run()
-    if (!securitySuccess) return
-
-    // Check DB setup
-    // We can now enable Named Graph Security
-    // and check if Named Graph Alias is allowed.
-    const dbSettings = DbSettings({
-        conn,
-        dbName,
-    })
-    const dbSettingsSuccess = await dbSettings.run()
-    if (!dbSettingsSuccess) return
-
-    const { addAliasToNamedGraph } = namedGraphUtil({
+    const { addAliasToNamedGraph, removeAliasFromNamedGraph } = namedGraphUtil({
         conn,
         dbName,
     })
@@ -53,12 +39,27 @@ export const namedGraph = async () => {
         namedGraph: newNamedGraph,
     })
     if (!addAliasSuccess) {
-        console.log(`Error adding ${aliasName} to ${newNamedGraph}`)
+        console.log(`Error adding ${aliasName} to <${newNamedGraph}>`)
         return
     }
     console.log(`<${newNamedGraph}> is now using ${aliasName}`)
 
-    console.log(`Creating read role for <${newNamedGraph}>`)
+    console.log(`\nRemoving ${aliasName} from <${oldNamedGraph}>`)
+    const removeAliasSuccess = await removeAliasFromNamedGraph({
+        aliasName,
+        namedGraph: oldNamedGraph,
+    })
+    if (!removeAliasSuccess) {
+        console.error(`Error removing ${aliasName} from <${oldNamedGraph}>`)
+        return
+    }
+
+    console.log(`\nCreating read role for <${newNamedGraph}>`)
+    const security = Security({
+        conn,
+        dbName,
+    })
+
     const newRole = await security.createReadRoleForNamedGraph(newNamedGraph)
     if (!newRole) {
         console.log(`Error creating read role for <${newNamedGraph}>`)
