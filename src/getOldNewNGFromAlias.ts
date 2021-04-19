@@ -1,4 +1,3 @@
-import { env } from 'shelljs'
 import { Connection } from 'stardog'
 import { namedGraphUtil } from './namedGraphUtil'
 import { processEnv } from './processEnv'
@@ -12,8 +11,6 @@ import { processEnv } from './processEnv'
  * DATABASE_PASSWORD=***
  * NG_DBNAME=[db name of where the named graph resides]
  * NG_ALIAS=[alias that the new named graph will use]
- * NG_NEW=[named graph new name]
- * NG_OLD=[named graph old name. the one that needs to be dropped] *
  */
 
 /**
@@ -21,12 +18,6 @@ import { processEnv } from './processEnv'
  * @returns Space separated value (NewNamedGraph OldNamedGraph) or null
  */
 export const getOldNewNGFromAlias = async () => {
-    env['DATABASE_URL'] = 'http://localhost:5820'
-    env['DATABASE_USERNAME'] = 'admin'
-    env['DATABASE_PASSWORD'] = 'admin'
-    env['NG_DBNAME'] = 'decomp'
-    env['NG_ALIAS'] = ':a-tosc'
-
     const {
         DATABASE_USERNAME: username,
         DATABASE_PASSWORD: password,
